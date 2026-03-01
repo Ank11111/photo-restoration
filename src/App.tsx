@@ -48,29 +48,36 @@ const App: React.FC = () => {
     let progress = 0;
     const progressStep = 100 / tasks.length;
 
-    for (let i = 0; i < tasks.length; i++) {
-      const task = tasks[i];
-      setCurrentTask(task.name);
+    try {
+      for (let i = 0; i < tasks.length; i++) {
+        const task = tasks[i];
+        setCurrentTask(task.name);
 
-      // 模拟API调用进度
-      const targetProgress = progressStep * (i + 1);
-      // eslint-disable-next-line no-loop-func
-      const progressInterval = setInterval(() => {
-        progress += 2;
-        if (progress >= targetProgress) {
-          clearInterval(progressInterval);
+        // 调用后端 API 处理图片
+        const response = await fetch('/api/restore', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ image: imageBase64 }),
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.image) {
+          setRestoredImage(data.image);
+          setProgress(100);
+          setStep('complete');
+          return;
+        } else {
+          throw new Error(data.error || '处理失败');
         }
-        setProgress(Math.min(progress, 100));
-      }, 160);
-
-      // 模拟API调用延迟
-      await new Promise((resolve) => setTimeout(resolve, task.duration));
-      clearInterval(progressInterval);
+      }
+    } catch (error) {
+      console.error('Error processing image:', error);
+      alert('处理失败，请重试');
+      setStep('upload');
     }
-
-    // 处理完成（这里应该返回真实的修复后图片）
-    setRestoredImage(imageBase64); // 暂时使用原图
-    setStep('complete');
   };
 
   const handleSave = () => {
