@@ -45,19 +45,22 @@ const App: React.FC = () => {
       { name: '黑白转彩色', duration: 8000 },
     ];
 
-    let currentProgress = 0;
+    let progress = 0;
     const progressStep = 100 / tasks.length;
 
-    for (const task of tasks) {
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i];
       setCurrentTask(task.name);
 
       // 模拟API调用进度
+      const targetProgress = progressStep * (i + 1);
+      // eslint-disable-next-line no-loop-func
       const progressInterval = setInterval(() => {
-        currentProgress += 2;
-        if (currentProgress >= progressStep * (tasks.indexOf(task) + 1)) {
+        progress += 2;
+        if (progress >= targetProgress) {
           clearInterval(progressInterval);
         }
-        setProgress(Math.min(currentProgress, 100));
+        setProgress(Math.min(progress, 100));
       }, 160);
 
       // 模拟API调用延迟
