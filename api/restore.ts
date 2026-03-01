@@ -1,5 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import crypto from 'crypto';
+const crypto = require('crypto');
 const OSS = require('ali-oss');
 
 const ALIYUN_ACCESS_KEY_ID = process.env.ALIYUN_ACCESS_KEY_ID || '';
@@ -16,7 +15,7 @@ const ossClient = new OSS({
 });
 
 // 上传 Base64 图片到 OSS
-async function uploadBase64ToOSS(base64Image: string): Promise<string> {
+async function uploadBase64ToOSS(base64Image) {
   // 移除 Base64 前缀
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
   const buffer = Buffer.from(base64Data, 'base64');
@@ -32,10 +31,7 @@ async function uploadBase64ToOSS(base64Image: string): Promise<string> {
 }
 
 // 计算阿里云 API 签名
-function calculateAliyunSignature(
-  method: string,
-  params: Record<string, string>
-): string {
+function calculateAliyunSignature(method, params) {
   const endpoint = 'https://viapi.cn-shanghai.aliyuncs.com';
   const path = '/';
 
@@ -53,14 +49,11 @@ function calculateAliyunSignature(
 }
 
 // 调用阿里云视觉智能 API
-async function callAliyunAPI(
-  action: string,
-  imageURL: string
-): Promise<string> {
+async function callAliyunAPI(action, imageURL) {
   const endpoint = 'https://viapi.cn-shanghai.aliyuncs.com';
   const method = 'POST';
 
-  const params: Record<string, string> = {
+  const params = {
     Action: action,
     Version: '2020-09-30',
     Format: 'JSON',
@@ -99,7 +92,7 @@ async function callAliyunAPI(
   return data.Data.ImageURL;
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -137,7 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Error processing image:', error);
     return res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to process image',
+      error: error.message || 'Failed to process image',
     });
   }
-}
+};
