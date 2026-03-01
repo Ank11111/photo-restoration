@@ -1,35 +1,55 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
+import OSS from 'ali-oss';
 
 const ALIYUN_ACCESS_KEY_ID = process.env.ALIYUN_ACCESS_KEY_ID || '';
 const ALIYUN_ACCESS_KEY_SECRET = process.env.ALIYUN_ACCESS_KEY_SECRET || '';
+const OSS_BUCKET_NAME = process.env.OSS_BUCKET_NAME || 'anki11';
+const OSS_REGION = process.env.OSS_REGION || 'oss-cn-hangzhou';
 
-// 阿里云 API 签名算法
-function sign(
+// 初始化 OSS 客户端
+const ossClient = new OSS({
+  region: OSS_REGION,
+  accessKeyId: ALIYUN_ACCESS_KEY_ID,
+  accessKeySecret: ALIYUN_ACCESS_KEY_SECRET,
+  bucket: OSS_BUCKET_NAME,
+});
+
+// 上传 Base64 图片到 OSS
+async function uploadBase64ToOSS(base64Image: string): Promise<string> {
+  // 移除 Base64 前缀
+  const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  // 生成唯一文件名
+  const fileName = `restored/${Date.now()}-${Math.random().toString(36).substring(2)}.jpg`;
+
+  // 上传到 OSS
+  const result = await ossClient.put(fileName, buffer);
+
+  // 返回公共访问 URL
+  return result.url;
+}
+
+// 计算阿里云 API 签名
+function calculateAliyunSignature(
   method: string,
-  path: string,
-  params: Record<string, string>,
-  headers: Record<string, string>
+  params: Record<string, string>
 ): string {
-  const timestamp = new Date().toISOString();
-  const nonce = Math.random().toString(36).substring(2);
+  const endpoint = 'https://viapi.cn-shanghai.aliyuncs.com';
+  const path = '/';
 
-  // 构造签名字符串
-  const stringToSign = [
-    method.toUpperCase(),
-    headers['Content-Type'] || 'application/x-www-form-urlencoded',
-    headers['Content-MD5'] || '',
-    headers['Date'] || timestamp,
-    path,
-  ].join('\n');
+  const sortedParams = Object.keys(params).sort();
+  const canonicalizedQueryString = sortedParams
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .join('&');
 
-  // HMAC-SHA1 签名
-  const signature = crypto
-    .createHmac('sha1', ALIYUN_ACCESS_KEY_SECRET)
+  const stringToSign = `${method}&${encodeURIComponent(path)}&${encodeURIComponent(canonicalizedQueryString)}`;
+
+  return crypto
+    .createHmac('sha1', `${ALIYUN_ACCESS_KEY_SECRET}&`)
     .update(stringToSign)
     .digest('base64');
-
-  return signature;
 }
 
 // 调用阿里云视觉智能 API
@@ -38,10 +58,9 @@ async function callAliyunAPI(
   imageURL: string
 ): Promise<string> {
   const endpoint = 'https://viapi.cn-shanghai.aliyuncs.com';
-  const path = '/';
   const method = 'POST';
 
-  const params = {
+  const params: Record<string, string> = {
     Action: action,
     Version: '2020-09-30',
     Format: 'JSON',
@@ -54,21 +73,11 @@ async function callAliyunAPI(
   };
 
   // 计算签名
-  const canonicalizedQueryString = Object.keys(params)
-    .sort()
-    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key as keyof typeof params])}`)
-    .join('&');
-
-  const stringToSign = `${method}&${encodeURIComponent('/')}&${encodeURIComponent(canonicalizedQueryString)}`;
-  const signature = crypto
-    .createHmac('sha1', `${ALIYUN_ACCESS_KEY_SECRET}&`)
-    .update(stringToSign)
-    .digest('base64');
-
+  const signature = calculateAliyunSignature(method, params);
   params.Signature = signature;
 
   // 发送请求
-  const response = await fetch(endpoint + path + '?' + new URLSearchParams(params), {
+  const response = await fetch(endpoint + '?' + new URLSearchParams(params), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -78,17 +87,16 @@ async function callAliyunAPI(
   const data = await response.json();
 
   if (!response.ok) {
+    console.error('API Error:', data);
     throw new Error(`API Error: ${JSON.stringify(data)}`);
   }
 
-  return data.Data.ImageURL || imageURL;
-}
+  if (!data.Data || !data.Data.ImageURL) {
+    console.error('Invalid response:', data);
+    throw new Error('Invalid API response');
+  }
 
-// 上传图片到 OSS（简化版，使用 Base64）
-async function uploadToOSS(base64Image: string): Promise<string> {
-  // 实际项目中应该上传到阿里云 OSS
-  // 这里暂时返回 base64，实际需要先上传获取 URL
-  return base64Image;
+  return data.Data.ImageURL;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -103,20 +111,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // 上传图片（实际需要上传到 OSS）
-    const imageUrl = await uploadToOSS(image);
+    console.log('Step 0: Upload image to OSS');
+    const imageUrl = await uploadBase64ToOSS(image);
+    console.log('Image uploaded:', imageUrl);
 
     // 步骤1: 老照片修复
     console.log('Step 1: EnhanceImageColor');
     const enhancedImage = await callAliyunAPI('EnhanceImageColor', imageUrl);
+    console.log('Enhanced:', enhancedImage);
 
     // 步骤2: 超分辨率放大
     console.log('Step 2: SuperResolution');
     const superResImage = await callAliyunAPI('SuperResolution', enhancedImage);
+    console.log('Super resolution:', superResImage);
 
-    // 步骤3: 检测是否黑白，是则上色
-    // 暂时跳过，需要先实现黑白检测
-    console.log('Step 3: Check if black and white and colorize (skipped)');
+    // 步骤3: 黑白转彩色（需要先检测是否黑白）
+    // 暂时跳过，因为检测功能需要额外 API
+    console.log('Step 3: Colorize (skipped for now)');
 
     return res.status(200).json({
       success: true,
