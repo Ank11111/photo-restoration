@@ -39,39 +39,24 @@ const App: React.FC = () => {
   };
 
   const processImage = async (imageBase64: string) => {
-    const tasks = [
-      { name: '修复划痕和噪点', duration: 8000 },
-      { name: '提升清晰度', duration: 8000 },
-      { name: '黑白转彩色', duration: 8000 },
-    ];
-
-    let progress = 0;
-    const progressStep = 100 / tasks.length;
-
     try {
-      for (let i = 0; i < tasks.length; i++) {
-        const task = tasks[i];
-        setCurrentTask(task.name);
+      // 调用后端 API 处理图片
+      const response = await fetch('/api/restore', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: imageBase64 }),
+      });
 
-        // 调用后端 API 处理图片
-        const response = await fetch('/api/restore', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ image: imageBase64 }),
-        });
+      const data = await response.json();
 
-        const data = await response.json();
-
-        if (data.success && data.image) {
-          setRestoredImage(data.image);
-          setProgress(100);
-          setStep('complete');
-          return;
-        } else {
-          throw new Error(data.error || '处理失败');
-        }
+      if (data.success && data.image) {
+        setRestoredImage(data.image);
+        setProgress(100);
+        setStep('complete');
+      } else {
+        throw new Error(data.error || '处理失败');
       }
     } catch (error) {
       console.error('Error processing image:', error);
