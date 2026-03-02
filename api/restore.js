@@ -113,7 +113,7 @@ module.exports = async function handler(req, res) {
     const enhancedImage = await callAliyunAPI('EnhanceImageColor', {
       ImageURL: imageUrl,
       OutputFormat: 'jpg',
-      Mode: 'Auto',
+      Mode: 'ln17_256',
     });
     console.log('Enhanced:', enhancedImage);
 
