@@ -12,6 +12,7 @@ const ossClient = new OSS({
   accessKeyId: ALIYUN_ACCESS_KEY_ID,
   accessKeySecret: ALIYUN_ACCESS_KEY_SECRET,
   bucket: OSS_BUCKET_NAME,
+  timeout: 120000,
 });
 
 // 上传 Base64 图片到 OSS

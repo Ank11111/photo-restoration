@@ -39,26 +39,38 @@ const App: React.FC = () => {
   };
 
   const processImage = async (imageBase64: string) => {
+    const tasks = ['第 1 步：修复老照片...', '第 2 步：提升清晰度...', '第 3 步：还原色彩...'];
+    let currentProgress = 0;
+
+    // 模拟进度：每 300ms 涨 1%，最多到 90%
+    const timer = setInterval(() => {
+      currentProgress += 1;
+      const taskIndex = Math.floor((currentProgress / 90) * tasks.length);
+      setCurrentTask(tasks[Math.min(taskIndex, tasks.length - 1)]);
+      setProgress(currentProgress);
+      if (currentProgress >= 90) clearInterval(timer);
+    }, 300);
+
     try {
-      // 调用后端 API 处理图片
       const response = await fetch('/api/restore', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: imageBase64 }),
       });
 
       const data = await response.json();
+      clearInterval(timer);
 
       if (data.success && data.image) {
-        setRestoredImage(data.image);
+        setCurrentTask('修复完成！');
         setProgress(100);
+        setRestoredImage(data.image);
         setStep('complete');
       } else {
         throw new Error(data.error || '处理失败');
       }
     } catch (error) {
+      clearInterval(timer);
       console.error('Error processing image:', error);
       alert('处理失败，请重试');
       setStep('upload');
