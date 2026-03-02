@@ -32,7 +32,7 @@ async function uploadBase64ToOSS(base64Image) {
 
 // 计算阿里云 API 签名
 function calculateAliyunSignature(method, params) {
-  const endpoint = 'https://viapi.cn-shanghai.aliyuncs.com';
+  const endpoint = 'https://imageenhan.cn-shanghai.aliyuncs.com';
   const path = '/';
 
   const sortedParams = Object.keys(params).sort();
@@ -50,12 +50,12 @@ function calculateAliyunSignature(method, params) {
 
 // 调用阿里云视觉智能 API
 async function callAliyunAPI(action, imageURL) {
-  const endpoint = 'https://viapi.cn-shanghai.aliyuncs.com';
+  const endpoint = 'https://imageenhan.cn-shanghai.aliyuncs.com';
   const method = 'POST';
 
   const params = {
     Action: action,
-    Version: '2020-09-30',
+    Version: '2019-09-30',
     Format: 'JSON',
     AccessKeyId: ALIYUN_ACCESS_KEY_ID,
     SignatureMethod: 'HMAC-SHA1',
