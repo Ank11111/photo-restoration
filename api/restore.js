@@ -63,6 +63,7 @@ async function callAliyunAPI(action, imageURL) {
     SignatureNonce: Math.random().toString(36).substring(2),
     Timestamp: new Date().toISOString(),
     ImageURL: imageURL,
+    OutputFormat: 'jpg',
   };
 
   // 计算签名
