@@ -132,13 +132,21 @@ module.exports = async function handler(req, res) {
       console.log('Step 2 skipped:', e.message);
     }
 
-    // 步骤3: 黑白转彩色（需要先检测是否黑白）
-    // 暂时跳过，因为检测功能需要额外 API
-    console.log('Step 3: Colorize (skipped for now)');
+    // 步骤3: 黑白转彩色（黑白照片生效，彩色照片跳过）
+    let finalImage = superResImage;
+    try {
+      console.log('Step 3: ColorizeImage');
+      finalImage = await callAliyunAPI('ColorizeImage', {
+        ImageURL: superResImage,
+      });
+      console.log('Colorized:', finalImage);
+    } catch (e) {
+      console.log('Step 3 skipped:', e.message);
+    }
 
     return res.status(200).json({
       success: true,
-      image: superResImage,
+      image: finalImage,
     });
   } catch (error) {
     console.error('Error processing image:', error);
