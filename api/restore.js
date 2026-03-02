@@ -33,7 +33,6 @@ async function uploadBase64ToOSS(base64Image) {
 
 // 计算阿里云 API 签名
 function calculateAliyunSignature(method, params) {
-  const endpoint = 'https://imageenhan.cn-shanghai.aliyuncs.com';
   const path = '/';
 
   const sortedParams = Object.keys(params).sort();
@@ -50,13 +49,12 @@ function calculateAliyunSignature(method, params) {
 }
 
 // 调用阿里云视觉智能 API
-async function callAliyunAPI(action, extraParams) {
-  const endpoint = 'https://imageenhan.cn-shanghai.aliyuncs.com';
+async function callAliyunAPI(action, extraParams, endpoint = 'https://imageenhan.cn-shanghai.aliyuncs.com', version = '2019-09-30') {
   const method = 'POST';
 
   const params = {
     Action: action,
-    Version: '2019-09-30',
+    Version: version,
     Format: 'JSON',
     AccessKeyId: ALIYUN_ACCESS_KEY_ID,
     SignatureMethod: 'HMAC-SHA1',
@@ -111,9 +109,12 @@ module.exports = async function handler(req, res) {
 
     // 步骤1: 老照片人脸修复（去噪、增强细节）
     console.log('Step 1: EnhanceFace');
-    const enhancedImage = await callAliyunAPI('EnhanceFace', {
-      ImageURL: imageUrl,
-    });
+    const enhancedImage = await callAliyunAPI(
+      'EnhanceFace',
+      { ImageURL: imageUrl },
+      'https://facebody.cn-shanghai.aliyuncs.com',
+      '2019-12-30'
+    );
     console.log('Enhanced:', enhancedImage);
 
     // 步骤2: 超分辨率放大
