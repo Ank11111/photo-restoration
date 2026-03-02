@@ -109,12 +109,10 @@ module.exports = async function handler(req, res) {
     const imageUrl = await uploadBase64ToOSS(image);
     console.log('Image uploaded:', imageUrl);
 
-    // 步骤1: 老照片修复
-    console.log('Step 1: EnhanceImageColor');
-    const enhancedImage = await callAliyunAPI('EnhanceImageColor', {
+    // 步骤1: 老照片人脸修复（去噪、增强细节）
+    console.log('Step 1: EnhanceFace');
+    const enhancedImage = await callAliyunAPI('EnhanceFace', {
       ImageURL: imageUrl,
-      OutputFormat: 'jpg',
-      Mode: 'ln17_256',
     });
     console.log('Enhanced:', enhancedImage);
 
