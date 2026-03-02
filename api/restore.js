@@ -84,12 +84,12 @@ async function callAliyunAPI(action, extraParams) {
     throw new Error(`API Error: ${JSON.stringify(data)}`);
   }
 
-  if (!data.Data || !data.Data.ImageURL) {
+  if (!data.Data || (!data.Data.ImageURL && !data.Data.Url)) {
     console.error('Invalid response:', data);
     throw new Error('Invalid API response');
   }
 
-  return data.Data.ImageURL;
+  return data.Data.ImageURL || data.Data.Url;
 }
 
 module.exports = async function handler(req, res) {
