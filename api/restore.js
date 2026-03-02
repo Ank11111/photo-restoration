@@ -108,32 +108,32 @@ module.exports = async function handler(req, res) {
     const imageUrl = await uploadBase64ToOSS(image);
     console.log('Image uploaded:', imageUrl);
 
-    // 步骤1: 超分辨率放大（原图较小时先放大，给后续修复提供更多细节）
-    let superResImage = imageUrl;
-    try {
-      console.log('Step 1: MakeSuperResolutionImage');
-      superResImage = await callAliyunAPI('MakeSuperResolutionImage', {
-        Url: imageUrl,
-        OutputFormat: 'jpg',
-        UpscaleFactor: 2,
-      });
-      console.log('Super resolution:', superResImage);
-    } catch (e) {
-      console.log('Step 1 skipped:', e.message);
-    }
-
-    // 步骤2: 老照片人脸修复（去噪、增强细节）
-    console.log('Step 2: EnhanceFace');
+    // 步骤1: 老照片人脸修复（去噪、增强细节）
+    console.log('Step 1: EnhanceFace');
     const enhancedImage = await callAliyunAPI(
       'EnhanceFace',
-      { ImageURL: superResImage },
+      { ImageURL: imageUrl },
       'https://facebody.cn-shanghai.aliyuncs.com',
       '2019-12-30'
     );
     console.log('Enhanced:', enhancedImage);
 
+    // 步骤2: 超分辨率放大（若图片已是高分辨率则跳过）
+    let superResImage = enhancedImage;
+    try {
+      console.log('Step 2: MakeSuperResolutionImage');
+      superResImage = await callAliyunAPI('MakeSuperResolutionImage', {
+        Url: enhancedImage,
+        OutputFormat: 'jpg',
+        UpscaleFactor: 2,
+      });
+      console.log('Super resolution:', superResImage);
+    } catch (e) {
+      console.log('Step 2 skipped:', e.message);
+    }
+
     // 步骤3: 黑白转彩色（黑白照片生效，彩色照片跳过）
-    let finalImage = enhancedImage;
+    let finalImage = superResImage;
     try {
       console.log('Step 3: ColorizeImage');
       finalImage = await callAliyunAPI('ColorizeImage', {
