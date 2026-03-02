@@ -49,7 +49,7 @@ function calculateAliyunSignature(method, params) {
 }
 
 // 调用阿里云视觉智能 API
-async function callAliyunAPI(action, imageURL) {
+async function callAliyunAPI(action, extraParams) {
   const endpoint = 'https://imageenhan.cn-shanghai.aliyuncs.com';
   const method = 'POST';
 
@@ -62,8 +62,7 @@ async function callAliyunAPI(action, imageURL) {
     SignatureVersion: '1.0',
     SignatureNonce: Math.random().toString(36).substring(2),
     Timestamp: new Date().toISOString(),
-    ImageURL: imageURL,
-    OutputFormat: 'jpg',
+    ...extraParams,
   };
 
   // 计算签名
@@ -111,12 +110,20 @@ module.exports = async function handler(req, res) {
 
     // 步骤1: 老照片修复
     console.log('Step 1: EnhanceImageColor');
-    const enhancedImage = await callAliyunAPI('EnhanceImageColor', imageUrl);
+    const enhancedImage = await callAliyunAPI('EnhanceImageColor', {
+      ImageURL: imageUrl,
+      OutputFormat: 'jpg',
+      Mode: 'Auto',
+    });
     console.log('Enhanced:', enhancedImage);
 
     // 步骤2: 超分辨率放大
-    console.log('Step 2: SuperResolution');
-    const superResImage = await callAliyunAPI('SuperResolution', enhancedImage);
+    console.log('Step 2: MakeSuperResolutionImage');
+    const superResImage = await callAliyunAPI('MakeSuperResolutionImage', {
+      Url: enhancedImage,
+      OutputFormat: 'jpg',
+      UpscaleFactor: 2,
+    });
     console.log('Super resolution:', superResImage);
 
     // 步骤3: 黑白转彩色（需要先检测是否黑白）
