@@ -13,6 +13,7 @@ const ossClient = new OSS({
   accessKeySecret: ALIYUN_ACCESS_KEY_SECRET,
   bucket: OSS_BUCKET_NAME,
   timeout: 120000,
+  secure: true,
 });
 
 // 上传 Base64 图片到 OSS
@@ -117,14 +118,19 @@ module.exports = async function handler(req, res) {
     );
     console.log('Enhanced:', enhancedImage);
 
-    // 步骤2: 超分辨率放大
-    console.log('Step 2: MakeSuperResolutionImage');
-    const superResImage = await callAliyunAPI('MakeSuperResolutionImage', {
-      Url: enhancedImage,
-      OutputFormat: 'jpg',
-      UpscaleFactor: 2,
-    });
-    console.log('Super resolution:', superResImage);
+    // 步骤2: 超分辨率放大（若图片已是高分辨率则跳过）
+    let superResImage = enhancedImage;
+    try {
+      console.log('Step 2: MakeSuperResolutionImage');
+      superResImage = await callAliyunAPI('MakeSuperResolutionImage', {
+        Url: enhancedImage,
+        OutputFormat: 'jpg',
+        UpscaleFactor: 2,
+      });
+      console.log('Super resolution:', superResImage);
+    } catch (e) {
+      console.log('Step 2 skipped:', e.message);
+    }
 
     // 步骤3: 黑白转彩色（需要先检测是否黑白）
     // 暂时跳过，因为检测功能需要额外 API
