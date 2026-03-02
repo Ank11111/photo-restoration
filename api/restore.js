@@ -3,8 +3,8 @@ const OSS = require('ali-oss');
 
 const ALIYUN_ACCESS_KEY_ID = process.env.ALIYUN_ACCESS_KEY_ID || '';
 const ALIYUN_ACCESS_KEY_SECRET = process.env.ALIYUN_ACCESS_KEY_SECRET || '';
-const OSS_BUCKET_NAME = process.env.OSS_BUCKET_NAME || 'anki11';
-const OSS_REGION = process.env.OSS_REGION || 'oss-cn-hangzhou';
+const OSS_BUCKET_NAME = process.env.OSS_BUCKET_NAME || '';
+const OSS_REGION = process.env.OSS_REGION || 'oss-cn-shanghai';
 
 // 初始化 OSS 客户端
 const ossClient = new OSS({
